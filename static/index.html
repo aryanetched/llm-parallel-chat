@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Continuous Batching</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'IBM Plex Mono', monospace;
+            background: #0a0a0a;
+            color: #e0e0e0;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        header {
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 1px solid #1a1a1a;
+        }
+
+        .header-left h1 {
+            font-size: 1.5rem;
+            font-weight: 500;
+            color: #fff;
+            margin-bottom: 0.25rem;
+        }
+
+        .header-left p {
+            font-size: 0.85rem;
+            color: #555;
+        }
+
+        .header-right {
+            font-size: 0.85rem;
+            color: #555;
+            text-align: right;
+        }
+
+        .grid-container {
+            flex: 1;
+            padding: 0.75rem;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 0.75rem;
+            height: calc(100vh - 70px);
+        }
+
+        .chat-window {
+            background: #0f0f0f;
+            border: 1px solid #1a1a1a;
+            border-radius: 6px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            padding: 0.6rem 0.85rem;
+            background: #111;
+            border-bottom: 1px solid #1a1a1a;
+            gap: 0.6rem;
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            flex-shrink: 0;
+            background: #333;
+        }
+
+        .status-indicator.idle {
+            background: #333;
+        }
+
+        .status-indicator.streaming {
+            background: #f5a623;
+            animation: pulse 1s infinite;
+        }
+
+        .status-indicator.complete {
+            background: #4a4;
+        }
+
+        .status-indicator.error {
+            background: #a44;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .window-title {
+            flex: 1;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #666;
+        }
+
+        .token-count {
+            font-size: 0.75rem;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .token-count .in {
+            color: #6a6;
+        }
+
+        .token-count .out {
+            color: #a86;
+        }
+
+        .btn-clear {
+            background: transparent;
+            border: none;
+            color: #444;
+            cursor: pointer;
+            font-size: 0.7rem;
+            font-family: inherit;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+
+        .btn-clear:hover {
+            color: #999;
+            background: #1a1a1a;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            scrollbar-width: thin;
+            scrollbar-color: #222 transparent;
+        }
+
+        .chat-messages::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        .chat-messages::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #222;
+            border-radius: 3px;
+        }
+
+        .message-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .message-header {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .message-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 2px;
+            flex-shrink: 0;
+            margin-top: 0.35rem;
+        }
+
+        .message-indicator.user {
+            background: #4a4;
+        }
+
+        .message-indicator.assistant {
+            background: #f5a623;
+        }
+
+        .message-indicator.error {
+            background: #a44;
+        }
+
+        .message-prompt {
+            flex: 1;
+            color: #ccc;
+            font-size: 0.9rem;
+            font-weight: 500;
+            line-height: 1.5;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .message-tokens {
+            font-size: 0.7rem;
+            color: #555;
+            flex-shrink: 0;
+            white-space: nowrap;
+        }
+
+        .message-response {
+            margin-left: 1.25rem;
+            color: #999;
+            font-size: 0.85rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
+        .message-response.streaming::after {
+            content: '▊';
+            animation: blink 0.7s infinite;
+            color: #f5a623;
+        }
+
+        @keyframes blink {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0;
+            }
+        }
+
+        .message-response.error {
+            color: #c77;
+        }
+
+        .empty-state {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #333;
+            font-size: 0.8rem;
+        }
+
+        .chat-input-container {
+            padding: 0.6rem;
+            border-top: 1px solid #1a1a1a;
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .chat-input {
+            flex: 1;
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: 4px;
+            padding: 0.65rem 0.85rem;
+            color: #ddd;
+            font-family: inherit;
+            font-size: 0.85rem;
+            outline: none;
+            min-height: 42px;
+        }
+
+        .chat-input:focus {
+            border-color: #444;
+        }
+
+        .chat-input::placeholder {
+            color: #444;
+        }
+
+        .btn-send {
+            background: #1a1a1a;
+            border: 1px solid #2a2a2a;
+            border-radius: 4px;
+            padding: 0.65rem 1rem;
+            color: #777;
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .btn-send:hover:not(:disabled) {
+            background: #252525;
+            color: #bbb;
+        }
+
+        .btn-send:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 1400px) {
+            .grid-container {
+                grid-template-columns: repeat(3, 1fr);
+                grid-template-rows: repeat(4, 1fr);
+            }
+        }
+
+        @media (max-width: 1000px) {
+            .grid-container {
+                grid-template-columns: repeat(2, 1fr);
+                grid-template-rows: repeat(6, 1fr);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="header-left">
+            <h1>Continuous Batching</h1>
+            <p>Real-time inference demonstration</p>
+        </div>
+        <div class="header-right" id="status-text">
+            Connecting...
+        </div>
+    </header>
+
+    <div class="grid-container" id="grid"></div>
+
+    <script>
+        const windows = [];
+
+        class ChatWindow {
+            constructor(id) {
+                this.id = id;
+                this.conversations = [];
+                this.isStreaming = false;
+                this.totalInputTokens = 0;
+                this.totalOutputTokens = 0;
+                this.element = this.createDOM();
+            }
+
+            createDOM() {
+                const el = document.createElement('div');
+                el.className = 'chat-window';
+                el.innerHTML = `
+                    <div class="chat-header">
+                        <div class="status-indicator idle"></div>
+                        <span class="window-title">Chat ${this.id.toString().padStart(2, '0')}</span>
+                        <span class="token-count"><span class="in">0</span> in / <span class="out">0</span> out</span>
+                        <button class="btn-clear">clear</button>
+                    </div>
+                    <div class="chat-messages">
+                        <div class="empty-state">Enter a prompt...</div>
+                    </div>
+                    <div class="chat-input-container">
+                        <input type="text" class="chat-input" placeholder="Enter your prompt">
+                        <button class="btn-send">Enter →</button>
+                    </div>
+                `;
+
+                const input = el.querySelector('.chat-input');
+                const sendBtn = el.querySelector('.btn-send');
+                const clearBtn = el.querySelector('.btn-clear');
+
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') {
+                        this.sendMessage();
+                    }
+                });
+
+                sendBtn.addEventListener('click', () => this.sendMessage());
+                clearBtn.addEventListener('click', () => this.clearChat());
+
+                this.statusIndicator = el.querySelector('.status-indicator');
+                this.tokenInEl = el.querySelector('.token-count .in');
+                this.tokenOutEl = el.querySelector('.token-count .out');
+                this.messagesEl = el.querySelector('.chat-messages');
+                this.inputEl = input;
+                this.sendBtn = sendBtn;
+
+                return el;
+            }
+
+            updateTokenDisplay() {
+                this.tokenInEl.textContent = this.totalInputTokens;
+                this.tokenOutEl.textContent = this.totalOutputTokens;
+            }
+
+            addMessageGroup(prompt) {
+                // Remove empty state
+                const emptyState = this.messagesEl.querySelector('.empty-state');
+                if (emptyState) emptyState.remove();
+
+                const group = document.createElement('div');
+                group.className = 'message-group';
+                group.innerHTML = `
+                    <div class="message-header">
+                        <div class="message-indicator user"></div>
+                        <span class="message-prompt">${this.escapeHtml(prompt)}</span>
+                        <span class="message-tokens">0 tokens</span>
+                    </div>
+                    <div class="message-response streaming"></div>
+                `;
+
+                this.messagesEl.appendChild(group);
+                this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
+
+                return {
+                    group,
+                    indicator: group.querySelector('.message-indicator'),
+                    tokens: group.querySelector('.message-tokens'),
+                    response: group.querySelector('.message-response'),
+                };
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+
+            async sendMessage() {
+                const text = this.inputEl.value.trim();
+                if (!text || this.isStreaming) return;
+
+                this.inputEl.value = '';
+                this.isStreaming = true;
+                this.sendBtn.disabled = true;
+                this.statusIndicator.className = 'status-indicator streaming';
+
+                const msg = this.addMessageGroup(text);
+                const messages = [{ role: 'user', text }];
+                let fullResponse = '';
+                let currentInputTokens = 0;
+                let currentOutputTokens = 0;
+
+                try {
+                    const res = await fetch('/api/chat', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            messages,
+                            model: 'llama8b',
+                            max_output_tokens: 500,
+                        }),
+                    });
+
+                    const reader = res.body.getReader();
+                    const decoder = new TextDecoder();
+
+                    while (true) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+
+                        const chunk = decoder.decode(value);
+                        const lines = chunk.split('\n');
+
+                        for (const line of lines) {
+                            if (line.startsWith('data: ')) {
+                                const data = line.slice(6);
+                                if (data === '[DONE]') break;
+
+                                try {
+                                    const parsed = JSON.parse(data);
+
+                                    // Update input tokens
+                                    if (parsed.input_tokens !== undefined) {
+                                        currentInputTokens = parsed.input_tokens;
+                                    }
+
+                                    // Update output tokens
+                                    if (parsed.output_tokens !== undefined) {
+                                        currentOutputTokens = parsed.output_tokens;
+                                        msg.tokens.textContent = `${currentOutputTokens} tokens`;
+                                    }
+
+                                    // Handle text delta
+                                    if (parsed.delta) {
+                                        fullResponse += parsed.delta;
+                                        msg.response.textContent = fullResponse;
+                                        this.messagesEl.scrollTop = this.messagesEl.scrollHeight;
+                                    }
+
+                                    // Handle completion
+                                    if (parsed.done) {
+                                        currentInputTokens = parsed.input_tokens || currentInputTokens;
+                                        currentOutputTokens = parsed.output_tokens || currentOutputTokens;
+                                    }
+
+                                    if (parsed.error) {
+                                        throw new Error(parsed.error);
+                                    }
+                                } catch (e) {
+                                    if (e.message && !e.message.includes('JSON')) {
+                                        throw e;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    msg.indicator.className = 'message-indicator assistant';
+                    msg.response.classList.remove('streaming');
+                    this.statusIndicator.className = 'status-indicator complete';
+
+                    // Update totals
+                    this.totalInputTokens += currentInputTokens;
+                    this.totalOutputTokens += currentOutputTokens;
+                    this.updateTokenDisplay();
+
+                    msg.tokens.textContent = `${currentOutputTokens} tokens`;
+
+                } catch (err) {
+                    msg.indicator.className = 'message-indicator error';
+                    msg.response.classList.remove('streaming');
+                    msg.response.classList.add('error');
+                    msg.response.textContent = `Error: ${err.message}`;
+                    this.statusIndicator.className = 'status-indicator error';
+                } finally {
+                    this.isStreaming = false;
+                    this.sendBtn.disabled = false;
+                }
+            }
+
+            clearChat() {
+                this.conversations = [];
+                this.totalInputTokens = 0;
+                this.totalOutputTokens = 0;
+                this.updateTokenDisplay();
+                this.statusIndicator.className = 'status-indicator idle';
+                this.messagesEl.innerHTML = '<div class="empty-state">Enter a prompt...</div>';
+            }
+        }
+
+        // Initialize grid
+        function initGrid() {
+            const grid = document.getElementById('grid');
+            for (let i = 1; i <= 12; i++) {
+                const chatWindow = new ChatWindow(i);
+                windows.push(chatWindow);
+                grid.appendChild(chatWindow.element);
+            }
+        }
+
+        // Health check
+        async function checkHealth() {
+            const text = document.getElementById('status-text');
+
+            try {
+                const res = await fetch('/health');
+                const data = await res.json();
+
+                if (data.llm_backend) {
+                    text.textContent = 'Connected to tempest03:4317';
+                    text.style.color = '#4a4';
+                } else {
+                    text.textContent = 'LLM backend offline';
+                    text.style.color = '#a44';
+                }
+            } catch {
+                text.textContent = 'Server offline';
+                text.style.color = '#a44';
+            }
+        }
+
+        initGrid();
+        checkHealth();
+        setInterval(checkHealth, 10000);
+    </script>
+</body>
+
+</html>
