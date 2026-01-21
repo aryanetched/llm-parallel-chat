@@ -5,10 +5,28 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Continuous Batching</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
+        @font-face {
+            font-family: 'Sohne';
+            src: url('/static/fonts/soehne-buch.woff2') format('woff2');
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Sohne';
+            src: url('/static/fonts/soehne-halbfett.woff2') format('woff2');
+            font-weight: 500;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'Sohne';
+            src: url('/static/fonts/soehne-kraftig.woff2') format('woff2');
+            font-weight: 600;
+            font-style: normal;
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -16,38 +34,12 @@
         }
 
         body {
-            font-family: 'IBM Plex Mono', monospace;
-            background: #0a0a0a;
-            color: #e0e0e0;
+            font-family: 'Sohne', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #ffffff;
+            color: #1a1a1a;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
-        }
-
-        header {
-            padding: 1rem 1.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            border-bottom: 1px solid #1a1a1a;
-        }
-
-        .header-left h1 {
-            font-size: 1.5rem;
-            font-weight: 500;
-            color: #fff;
-            margin-bottom: 0.25rem;
-        }
-
-        .header-left p {
-            font-size: 0.85rem;
-            color: #555;
-        }
-
-        .header-right {
-            font-size: 0.85rem;
-            color: #555;
-            text-align: right;
         }
 
         .grid-container {
@@ -57,12 +49,12 @@
             grid-template-columns: repeat(4, 1fr);
             grid-template-rows: repeat(3, 1fr);
             gap: 0.75rem;
-            height: calc(100vh - 70px);
+            height: 100vh;
         }
 
         .chat-window {
-            background: #0f0f0f;
-            border: 1px solid #1a1a1a;
+            background: #ffffff;
+            border: 1px solid #d0d0d0;
             border-radius: 6px;
             display: flex;
             flex-direction: column;
@@ -73,8 +65,8 @@
             display: flex;
             align-items: center;
             padding: 0.6rem 0.85rem;
-            background: #111;
-            border-bottom: 1px solid #1a1a1a;
+            background: #000;
+            border-bottom: 1px solid #333;
             gap: 0.6rem;
         }
 
@@ -83,16 +75,16 @@
             height: 8px;
             border-radius: 2px;
             flex-shrink: 0;
-            background: #333;
+            background: #ccc;
         }
 
         .status-indicator.idle {
-            background: #333;
+            background: #ccc;
         }
 
         .status-indicator.streaming {
             background: #f5a623;
-            animation: pulse 1s infinite;
+            animation: pulse 1.5s infinite;
         }
 
         .status-indicator.complete {
@@ -119,38 +111,21 @@
             flex: 1;
             font-size: 0.8rem;
             font-weight: 500;
-            color: #666;
+            color: #fff;
         }
 
         .token-count {
             font-size: 0.75rem;
-            color: #555;
+            color: #fff;
             font-weight: 500;
         }
 
         .token-count .in {
-            color: #6a6;
+            color: #fff;
         }
 
         .token-count .out {
-            color: #a86;
-        }
-
-        .btn-clear {
-            background: transparent;
-            border: none;
-            color: #444;
-            cursor: pointer;
-            font-size: 0.7rem;
-            font-family: inherit;
-            padding: 0.2rem 0.4rem;
-            border-radius: 3px;
-            font-weight: 500;
-        }
-
-        .btn-clear:hover {
-            color: #999;
-            background: #1a1a1a;
+            color: #fff;
         }
 
         .chat-messages {
@@ -161,7 +136,8 @@
             flex-direction: column;
             gap: 0.75rem;
             scrollbar-width: thin;
-            scrollbar-color: #222 transparent;
+            scrollbar-color: #ccc transparent;
+            background: #ffffff;
         }
 
         .chat-messages::-webkit-scrollbar {
@@ -173,7 +149,7 @@
         }
 
         .chat-messages::-webkit-scrollbar-thumb {
-            background: #222;
+            background: #ccc;
             border-radius: 3px;
         }
 
@@ -190,28 +166,12 @@
         }
 
         .message-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 2px;
-            flex-shrink: 0;
-            margin-top: 0.35rem;
-        }
-
-        .message-indicator.user {
-            background: #4a4;
-        }
-
-        .message-indicator.assistant {
-            background: #f5a623;
-        }
-
-        .message-indicator.error {
-            background: #a44;
+            display: none;
         }
 
         .message-prompt {
             flex: 1;
-            color: #ccc;
+            color: #222;
             font-size: 0.9rem;
             font-weight: 500;
             line-height: 1.5;
@@ -221,14 +181,14 @@
 
         .message-tokens {
             font-size: 0.7rem;
-            color: #555;
+            color: #999;
             flex-shrink: 0;
             white-space: nowrap;
         }
 
         .message-response {
-            margin-left: 1.25rem;
-            color: #999;
+            margin-left: 0;
+            color: #555;
             font-size: 0.85rem;
             line-height: 1.6;
             white-space: pre-wrap;
@@ -238,7 +198,7 @@
 
         .message-response.streaming::after {
             content: '▊';
-            animation: blink 0.7s infinite;
+            animation: blink 1.5s infinite;
             color: #f5a623;
         }
 
@@ -258,49 +218,40 @@
             color: #c77;
         }
 
-        .empty-state {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            color: #333;
-            font-size: 0.8rem;
-        }
-
         .chat-input-container {
             padding: 0.6rem;
-            border-top: 1px solid #1a1a1a;
             display: flex;
             gap: 0.5rem;
+            background: #ffffff;
         }
 
         .chat-input {
             flex: 1;
-            background: #0a0a0a;
-            border: 1px solid #222;
+            background: #F3F1EE;
+            border: 1px solid #d0d0d0;
             border-radius: 4px;
-            padding: 0.65rem 0.85rem;
-            color: #ddd;
+            padding: 0.4rem 0.65rem;
+            color: #222;
             font-family: inherit;
             font-size: 0.85rem;
             outline: none;
-            min-height: 42px;
+            min-height: 32px;
         }
 
         .chat-input:focus {
-            border-color: #444;
+            border-color: #999;
         }
 
         .chat-input::placeholder {
-            color: #444;
+            color: #aaa;
         }
 
         .btn-send {
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
+            background: #000;
+            border: 1px solid #000;
             border-radius: 4px;
-            padding: 0.65rem 1rem;
-            color: #777;
+            padding: 0.4rem 0.75rem;
+            color: #fff;
             font-family: inherit;
             font-size: 0.85rem;
             font-weight: 500;
@@ -308,8 +259,8 @@
         }
 
         .btn-send:hover:not(:disabled) {
-            background: #252525;
-            color: #bbb;
+            background: #222;
+            color: #fff;
         }
 
         .btn-send:disabled {
@@ -334,16 +285,6 @@
 </head>
 
 <body>
-    <header>
-        <div class="header-left">
-            <h1>Continuous Batching</h1>
-            <p>Real-time inference demonstration</p>
-        </div>
-        <div class="header-right" id="status-text">
-            Connecting...
-        </div>
-    </header>
-
     <div class="grid-container" id="grid"></div>
 
     <script>
@@ -365,12 +306,10 @@
                 el.innerHTML = `
                     <div class="chat-header">
                         <div class="status-indicator idle"></div>
-                        <span class="window-title">Chat ${this.id.toString().padStart(2, '0')}</span>
+                        <span class="window-title">User ${this.id.toString().padStart(2, '0')}</span>
                         <span class="token-count"><span class="in">0</span> in / <span class="out">0</span> out</span>
-                        <button class="btn-clear">clear</button>
                     </div>
                     <div class="chat-messages">
-                        <div class="empty-state">Enter a prompt...</div>
                     </div>
                     <div class="chat-input-container">
                         <input type="text" class="chat-input" placeholder="Enter your prompt">
@@ -380,7 +319,6 @@
 
                 const input = el.querySelector('.chat-input');
                 const sendBtn = el.querySelector('.btn-send');
-                const clearBtn = el.querySelector('.btn-clear');
 
                 input.addEventListener('keydown', (e) => {
                     if (e.key === 'Enter') {
@@ -389,7 +327,6 @@
                 });
 
                 sendBtn.addEventListener('click', () => this.sendMessage());
-                clearBtn.addEventListener('click', () => this.clearChat());
 
                 this.statusIndicator = el.querySelector('.status-indicator');
                 this.tokenInEl = el.querySelector('.token-count .in');
@@ -407,10 +344,6 @@
             }
 
             addMessageGroup(prompt) {
-                // Remove empty state
-                const emptyState = this.messagesEl.querySelector('.empty-state');
-                if (emptyState) emptyState.remove();
-
                 const group = document.createElement('div');
                 group.className = 'message-group';
                 group.innerHTML = `
@@ -548,7 +481,7 @@
                 this.totalOutputTokens = 0;
                 this.updateTokenDisplay();
                 this.statusIndicator.className = 'status-indicator idle';
-                this.messagesEl.innerHTML = '<div class="empty-state">Enter a prompt...</div>';
+                this.messagesEl.innerHTML = '';
             }
         }
 
@@ -562,30 +495,7 @@
             }
         }
 
-        // Health check
-        async function checkHealth() {
-            const text = document.getElementById('status-text');
-
-            try {
-                const res = await fetch('/health');
-                const data = await res.json();
-
-                if (data.llm_backend) {
-                    text.textContent = 'Connected to tempest03:4317';
-                    text.style.color = '#4a4';
-                } else {
-                    text.textContent = 'LLM backend offline';
-                    text.style.color = '#a44';
-                }
-            } catch {
-                text.textContent = 'Server offline';
-                text.style.color = '#a44';
-            }
-        }
-
         initGrid();
-        checkHealth();
-        setInterval(checkHealth, 10000);
     </script>
 </body>
 

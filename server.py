@@ -6,7 +6,7 @@ Proxies requests to the LLM endpoint at tempest03:4317.
 
 import os
 import json
-from typing import Any
+from typing import Any, Optional, List, Dict
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -22,9 +22,9 @@ LLM_BASE_URL = f"http://{EMULATION_HOST}:4317/v1"
 TIMEOUT = 120
 
 # Shared async client
-http_client: httpx.AsyncClient | None = None
+http_client: Optional[httpx.AsyncClient] = None
 
-# Tokenizer (using cl100k_base which is close to Llama tokenization)
+# Tokenizer (approximate - for display purposes only)
 tokenizer = tiktoken.get_encoding("cl100k_base")
 
 
@@ -45,7 +45,7 @@ class ChatMessage(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    messages: list[ChatMessage]
+    messages: List[ChatMessage]
     model: str = "llama8b"
     instructions: str = "You are a helpful assistant. Answer concisely."
     max_output_tokens: int = 500
@@ -56,11 +56,11 @@ class TokenizeRequest(BaseModel):
 
 
 def count_tokens(text: str) -> int:
-    """Count tokens using tiktoken."""
+    """Count tokens (approximate)."""
     return len(tokenizer.encode(text))
 
 
-def format_messages_for_api(messages: list[ChatMessage]) -> list[dict[str, Any]]:
+def format_messages_for_api(messages: List[ChatMessage]) -> List[Dict[str, Any]]:
     """Convert messages to the Responses API format."""
     return [
         {
@@ -133,10 +133,9 @@ async def chat(request: ChatRequest):
                             if event.get("type") == "response.output_text.delta":
                                 delta = event.get("delta", "")
                                 full_response += delta
-                                # Periodically update token count (every ~10 chars to reduce overhead)
-                                if len(full_response) % 40 == 0:
-                                    output_tokens = count_tokens(full_response)
-                                yield f"data: {json.dumps({'delta': delta, 'output_tokens': output_tokens})}\n\n"
+                                # Update token count every few tokens
+                                output_tokens = count_tokens(full_response)
+                                yield f"data: {json.dumps({'delta': delta, 'input_tokens': input_tokens, 'output_tokens': output_tokens})}\n\n"
                         except json.JSONDecodeError:
                             pass
         except Exception as e:
