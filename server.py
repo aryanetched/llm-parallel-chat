@@ -18,6 +18,7 @@ import tiktoken
 
 # Configuration
 EMULATION_HOST = os.environ.get("EMULATION_HOST", "tempest03")
+print(f"running on {EMULATION_HOST}")
 LLM_BASE_URL = f"http://{EMULATION_HOST}:4317/v1"
 TIMEOUT = 120
 
