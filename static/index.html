@@ -64,10 +64,22 @@
 
         .header-title {
             font-size: 1rem;
-            font-weight: 500;
+            font-weight: 400;
             display: flex;
             align-items: center;
             gap: 0.5rem;
+        }
+
+        .header-title.large {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .header-title.status-box {
+            background: #e8f5e9;
+            border: 1px solid #4a4;
+            border-radius: 6px;
+            padding: 0.4rem 0.75rem;
         }
 
         .connection-indicator {
@@ -398,8 +410,8 @@
 
 <body>
     <div class="header">
-        <div class="header-title">Inference Stack Demo</div>
-        <div class="header-title">
+        <div class="header-title large">Inference Stack Demo</div>
+        <div class="header-title status-box">
             <span class="connection-indicator"></span>
             <span>Connected to Sohu FPGA cluster</span>
         </div>
