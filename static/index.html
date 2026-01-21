@@ -40,6 +40,58 @@
             min-height: 100vh;
             display: flex;
             flex-direction: column;
+            transition: background-color 0.3s ease;
+        }
+
+        body.dark-mode {
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+
+        .header {
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 0.5rem 1.5rem;
+            border-bottom: 1px solid #e0e0e0;
+            transition: border-color 0.3s ease;
+        }
+
+        body.dark-mode .header {
+            border-bottom-color: #333;
+        }
+
+        .header-title {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .theme-toggle {
+            background: #000;
+            color: #fff;
+            border: 1px solid #333;
+            border-radius: 4px;
+            padding: 0.35rem 0.5rem;
+            font-family: inherit;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 400;
+            transition: background-color 0.3s ease;
+            line-height: 1;
+        }
+
+        .theme-toggle:hover {
+            background: #222;
+        }
+
+        body.dark-mode .theme-toggle {
+            background: #fff;
+            color: #000;
+            border-color: #ccc;
+        }
+
+        body.dark-mode .theme-toggle:hover {
+            background: #e8e8e8;
         }
 
         .grid-container {
@@ -49,7 +101,7 @@
             grid-template-columns: repeat(4, 1fr);
             grid-template-rows: repeat(3, 1fr);
             gap: 0.75rem;
-            height: 100vh;
+            height: calc(100vh - 40px);
         }
 
         .chat-window {
@@ -59,6 +111,12 @@
             display: flex;
             flex-direction: column;
             overflow: hidden;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        body.dark-mode .chat-window {
+            background: #242424;
+            border-color: #333;
         }
 
         .chat-header {
@@ -68,6 +126,12 @@
             background: #000;
             border-bottom: 1px solid #333;
             gap: 0.6rem;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        body.dark-mode .chat-header {
+            background: #000;
+            border-bottom-color: #333;
         }
 
         .status-indicator {
@@ -138,6 +202,16 @@
             scrollbar-width: thin;
             scrollbar-color: #ccc transparent;
             background: #ffffff;
+            transition: background-color 0.3s ease;
+        }
+
+        body.dark-mode .chat-messages {
+            background: #EEE9E2;
+            scrollbar-color: #ccc transparent;
+        }
+
+        body.dark-mode .chat-messages::-webkit-scrollbar-thumb {
+            background: #ccc;
         }
 
         .chat-messages::-webkit-scrollbar {
@@ -179,11 +253,19 @@
             overflow-wrap: break-word;
         }
 
+        body.dark-mode .message-prompt {
+            color: #222;
+        }
+
         .message-tokens {
             font-size: 0.7rem;
             color: #999;
             flex-shrink: 0;
             white-space: nowrap;
+        }
+
+        body.dark-mode .message-tokens {
+            color: #999;
         }
 
         .message-response {
@@ -194,6 +276,11 @@
             white-space: pre-wrap;
             word-wrap: break-word;
             overflow-wrap: break-word;
+            transition: color 0.3s ease;
+        }
+
+        body.dark-mode .message-response {
+            color: #222;
         }
 
         .message-response.streaming::after {
@@ -223,6 +310,11 @@
             display: flex;
             gap: 0.5rem;
             background: #ffffff;
+            transition: background-color 0.3s ease;
+        }
+
+        body.dark-mode .chat-input-container {
+            background: #EEE9E2;
         }
 
         .chat-input {
@@ -236,14 +328,29 @@
             font-size: 0.85rem;
             outline: none;
             min-height: 32px;
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+
+        body.dark-mode .chat-input {
+            background: #D8D3CB;
+            border-color: #C8C3BB;
+            color: #222;
         }
 
         .chat-input:focus {
             border-color: #999;
         }
 
+        body.dark-mode .chat-input:focus {
+            border-color: #B8B3AB;
+        }
+
         .chat-input::placeholder {
             color: #aaa;
+        }
+
+        body.dark-mode .chat-input::placeholder {
+            color: #888;
         }
 
         .btn-send {
@@ -256,9 +363,21 @@
             font-size: 0.85rem;
             font-weight: 500;
             cursor: pointer;
+            transition: background-color 0.3s ease;
         }
 
         .btn-send:hover:not(:disabled) {
+            background: #222;
+            color: #fff;
+        }
+
+        body.dark-mode .btn-send {
+            background: #000;
+            border-color: #000;
+            color: #fff;
+        }
+
+        body.dark-mode .btn-send:hover:not(:disabled) {
             background: #222;
             color: #fff;
         }
@@ -285,6 +404,10 @@
 </head>
 
 <body>
+    <div class="header">
+        <div class="header-title"></div>
+        <button class="theme-toggle" id="theme-toggle">☾</button>
+    </div>
     <div class="grid-container" id="grid"></div>
 
     <script>
@@ -494,6 +617,28 @@
                 grid.appendChild(chatWindow.element);
             }
         }
+
+        // Theme toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
+
+        // Load saved theme preference
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme === 'dark') {
+            body.classList.add('dark-mode');
+            themeToggle.textContent = '☀';
+        }
+
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark-mode');
+            if (body.classList.contains('dark-mode')) {
+                themeToggle.textContent = '☀';
+                localStorage.setItem('theme', 'dark');
+            } else {
+                themeToggle.textContent = '☾';
+                localStorage.setItem('theme', 'light');
+            }
+        });
 
         initGrid();
     </script>
