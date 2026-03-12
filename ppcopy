@@ -20,9 +20,8 @@ from rich.prompt import Prompt
 # Configuration
 #EMULATION_HOST = os.environ.get("EMULATION_HOST", "tempest03")
 #BASE_URL = f"http://{EMULATION_HOST}:4317"
-BASE_URL="http://ws57-dk.srw.i.etched.com:8000"
-#BASE_URL="http://devkit-k61261000100034:8082"
-#BASE_URL="http://sd-setup-09.srw.i.etched.com:8000"
+BASE_URL="http://ws17-dk.srw.i.etched.com:8000"
+
 
 console = Console()
 
