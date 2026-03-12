@@ -15,7 +15,7 @@ from fastapi.staticfiles import StaticFiles
 import httpx
 from pydantic import BaseModel
 
-DEFAULT_WS_NUM = "57"
+DEFAULT_WS_NUM = "32"
 HOST_TEMPLATE = "http://ws{ws_num}-dk.srw.i.etched.com:8000"
 TIMEOUT = 120
 

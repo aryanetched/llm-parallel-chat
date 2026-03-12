@@ -202,21 +202,20 @@
             white-space: nowrap;
         }
 
-        .ws-input {
-            width: 2.5rem;
+        .ws-select {
             background: none;
             border: none;
-            border-bottom: 1px dashed var(--border);
             outline: none;
             font-family: inherit;
             font-size: 0.75rem;
             color: var(--text);
-            text-align: center;
+            cursor: pointer;
             padding: 0 0.1rem;
         }
 
-        .ws-input:focus {
-            border-bottom-color: var(--accent);
+        .ws-select option {
+            background: var(--bg-secondary);
+            color: var(--text);
         }
 
         /* Status indicator */
@@ -628,7 +627,10 @@
         <span class="model-badge" id="modelBadge">llama8b</span>
         <div class="host-selector">
             <span>ws</span>
-            <input class="ws-input" id="wsInput" value="57" maxlength="6" title="Change ws number">
+            <select class="ws-select" id="wsInput" title="Change ws number">
+                <option value="32" selected>32</option>
+                <option value="57">57</option>
+            </select>
             <span>-dk</span>
             <div class="status-dot checking" id="statusDot"></div>
         </div>
@@ -734,7 +736,6 @@ async function checkHealth() {
 
 // Re-check when user changes the ws number
 wsInput.addEventListener('change', () => checkHealth());
-wsInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkHealth(); });
 
 // Initial check + poll every 15s
 checkHealth();
